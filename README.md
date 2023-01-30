@@ -1,1 +1,1 @@
-# paperback-hez-en
+Paperback Extension for English Language
