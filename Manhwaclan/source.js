@@ -928,20 +928,64 @@ __exportStar(require("./RawData"), exports);
 },{"./Chapter":16,"./ChapterDetails":15,"./Constants":17,"./DynamicUI":33,"./HomeSection":34,"./Languages":35,"./Manga":38,"./MangaTile":36,"./MangaUpdate":37,"./PagedResults":39,"./RawData":40,"./RequestHeaders":41,"./RequestInterceptor":42,"./RequestManager":43,"./RequestObject":44,"./ResponseObject":45,"./SearchField":46,"./SearchRequest":47,"./SourceInfo":48,"./SourceManga":49,"./SourceStateManager":50,"./SourceTag":51,"./TagSection":52,"./TrackedManga":54,"./TrackedMangaChapterReadAction":53,"./TrackerActionQueue":55}],57:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Harimanga = exports.HarimangaInfo = void 0;
+exports.URLBuilder = void 0;
+/* eslint-disable @typescript-eslint/no-explicit-any */
+class URLBuilder {
+    constructor(baseUrl) {
+        this.parameters = {};
+        this.pathComponents = [];
+        this.baseUrl = baseUrl.replace(/(^\/)?(?=.*)(\/$)?/gim, '');
+    }
+    addPathComponent(component) {
+        this.pathComponents.push(component.replace(/(^\/)?(?=.*)(\/$)?/gim, ''));
+        return this;
+    }
+    addQueryParameter(key, value) {
+        this.parameters[key] = value;
+        return this;
+    }
+    buildUrl({ addTrailingSlash, includeUndefinedParameters } = { addTrailingSlash: false, includeUndefinedParameters: false }) {
+        let finalUrl = this.baseUrl + '/';
+        finalUrl += this.pathComponents.join('/');
+        finalUrl += addTrailingSlash ? '/' : '';
+        finalUrl += Object.values(this.parameters).length > 0 ? '?' : '';
+        finalUrl += Object.entries(this.parameters).map(entry => {
+            if (entry[1] == null && !includeUndefinedParameters) {
+                return undefined;
+            }
+            if (Array.isArray(entry[1])) {
+                return entry[1].map(value => value || includeUndefinedParameters ? `${entry[0]}[]=${value}` : undefined)
+                    .filter(x => x !== undefined)
+                    .join('&');
+            }
+            if (typeof entry[1] === 'object') {
+                return Object.keys(entry[1]).map(key => `${entry[0]}[${key}]=${entry[1][key]}`)
+                    .join('&');
+            }
+            return `${entry[0]}=${entry[1]}`;
+        }).filter(x => x !== undefined).join('&');
+        return finalUrl;
+    }
+}
+exports.URLBuilder = URLBuilder;
+
+},{}],58:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Manhwaclan = exports.ManhwaclanInfo = void 0;
 /* eslint-disable linebreak-style */
 const paperback_extensions_common_1 = require("paperback-extensions-common");
-const HarimangaMain_1 = require("./HarimangaMain");
-const Harimanga_DOMAIN = 'https://harimanga.com';
-exports.HarimangaInfo = {
-    version: HarimangaMain_1.getExportVersion('0.0.0'),
-    name: 'Harimanga',
-    description: 'Extension that pulls manga from Harimanga',
+const ManhwaclanMain_1 = require("./ManhwaclanMain");
+const Manhwaclan_DOMAIN = 'https://manhwaclan.com';
+exports.ManhwaclanInfo = {
+    version: ManhwaclanMain_1.getExportVersion('0.0.0'),
+    name: 'Manhwaclan',
+    description: 'Extension that pulls manga from Manhwaclan',
     author: 'heznetcom',
     authorWebsite: 'https://github.com/heznetcom',
     icon: 'icon.png',
     contentRating: paperback_extensions_common_1.ContentRating.MATURE,
-    websiteBaseURL: Harimanga_DOMAIN,
+    websiteBaseURL: Manhwaclan_DOMAIN,
     sourceTags: [
         {
             text: 'Notifications',
@@ -957,11 +1001,11 @@ exports.HarimangaInfo = {
         }
     ]
 };
-class Harimanga extends HarimangaMain_1.HarimangaMain {
+class Manhwaclan extends ManhwaclanMain_1.ManhwaclanMain {
     constructor() {
         //FOR ALL THE SELECTIONS, PLEASE CHECK THE MangaSteam.ts FILE!!!
         super(...arguments);
-        this.baseUrl = Harimanga_DOMAIN;
+        this.baseUrl = Manhwaclan_DOMAIN;
         this.languageCode = paperback_extensions_common_1.LanguageCode.ENGLISH;
         //----MANGA DETAILS SELECTORS
         /*
@@ -999,9 +1043,9 @@ class Harimanga extends HarimangaMain_1.HarimangaMain {
         */
     }
 }
-exports.Harimanga = Harimanga;
+exports.Manhwaclan = Manhwaclan;
 
-},{"./HarimangaMain":58,"paperback-extensions-common":14}],58:[function(require,module,exports){
+},{"./ManhwaclanMain":59,"paperback-extensions-common":14}],59:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -1013,10 +1057,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.HarimangaMain = exports.getExportVersion = void 0;
+exports.ManhwaclanMain = exports.getExportVersion = void 0;
 /* eslint-disable linebreak-style */
 const paperback_extensions_common_1 = require("paperback-extensions-common");
-const HarimangaMainParser_1 = require("./HarimangaMainParser");
+const ManhwaclanMainParser_1 = require("./ManhwaclanMainParser");
 const MadaraHelper_1 = require("../MadaraHelper");
 // Set the version for the base, changing this version will change the versions of all sources
 const BASE_VERSION = '1.0.0';
@@ -1024,7 +1068,7 @@ const getExportVersion = (EXTENSION_VERSION) => {
     return BASE_VERSION.split('.').map((x, index) => Number(x) + Number(EXTENSION_VERSION.split('.')[index])).join('.');
 };
 exports.getExportVersion = getExportVersion;
-class HarimangaMain extends paperback_extensions_common_1.Source {
+class ManhwaclanMain extends paperback_extensions_common_1.Source {
     constructor() {
         super(...arguments);
         /**
@@ -1034,13 +1078,13 @@ class HarimangaMain extends paperback_extensions_common_1.Source {
         //----GENERAL SELECTORS----
         /**
          * The pathname between the domain and the manga.
-         * Eg. https://Harimanga.com/komik/one-piece/ the pathname would be "komik"
+         * Eg. https://Manhwaclan.com/komik/one-piece/ the pathname would be "komik"
          * Default = "komik"
          */
         this.sourceTraversalPathName = 'manga';
         /**
          * The pathname between the domain and the chapter.
-         * Eg. https://Harimanga.com/chapter/one-piece-chapter-1046-5-bahasa-indonesia/ the pathname would be "chapter"
+         * Eg. https://Manhwaclan.com/chapter/one-piece-chapter-1046-5-bahasa-indonesia/ the pathname would be "chapter"
          * Default = "chapter"
          */
         this.sourceChapterTraversalPathName = 'manga';
@@ -1167,9 +1211,9 @@ class HarimangaMain extends paperback_extensions_common_1.Source {
          * Selector Default = "h2:contains(Popular Today)"
         */
         this.homescreen_PopularToday_enabled = true;
-        this.homescreen_PopularToday_selector = 'h5:contains(Most Viewed Today)';
+        this.homescreen_PopularToday_selector = 'h5:contains(TRENDING)';
         this.homescreen_LatestUpdate_enabled = true;
-        this.homescreen_LatestUpdate_selector_box = `h1:contains(WHAT'S NEW)`;
+        this.homescreen_LatestUpdate_selector_box = `h1:contains(LATEST MANGA UPDATES)`;
         this.homescreen_LatestUpdate_selector_item = 'div.page-item-detail';
         this.homescreen_NewManga_enabled = true;
         this.homescreen_NewManga_selector = 'div.page-content-listing';
@@ -1197,7 +1241,7 @@ class HarimangaMain extends paperback_extensions_common_1.Source {
                 })
             }
         });
-        this.parser = new HarimangaMainParser_1.HarimangaMainParser();
+        this.parser = new ManhwaclanMainParser_1.ManhwaclanMainParser();
     }
     getMangaShareUrl(mangaId) {
         return `${this.baseUrl}/${this.sourceTraversalPathName}/${mangaId}/`;
@@ -1316,7 +1360,7 @@ class HarimangaMain extends paperback_extensions_common_1.Source {
                 },
                 {
                     request: createRequestObject({
-                        url: `${this.baseUrl}/home-newmanhwa`,
+                        url: `${this.baseUrl}/`,
                         method: 'GET'
                     }),
                     section: createHomeSection({
@@ -1387,7 +1431,7 @@ class HarimangaMain extends paperback_extensions_common_1.Source {
                     param = `/${this.sourceTraversalPathName}/page/${page}/?m_orderby=new-manga`;
                     break;
                 case 'latest_update':
-                    param = `/home-newmanhwa/page/${page}/`;
+                    param = `/page/${page}/`;
                     break;
                 case 'popular_trending':
                     param = `/${this.sourceTraversalPathName}/page/${page}/?m_orderby=trending`;
@@ -1460,9 +1504,9 @@ class HarimangaMain extends paperback_extensions_common_1.Source {
         }
     }
 }
-exports.HarimangaMain = HarimangaMain;
+exports.ManhwaclanMain = ManhwaclanMain;
 
-},{"../MadaraHelper":60,"./HarimangaMainParser":59,"paperback-extensions-common":14}],59:[function(require,module,exports){
+},{"../MadaraHelper":57,"./ManhwaclanMainParser":60,"paperback-extensions-common":14}],60:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
@@ -1474,11 +1518,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.HarimangaMainParser = void 0;
+exports.ManhwaclanMainParser = void 0;
 /* eslint-disable linebreak-style */
 const paperback_extensions_common_1 = require("paperback-extensions-common");
 const entities = require("entities");
-class HarimangaMainParser {
+class ManhwaclanMainParser {
     constructor() {
         this.parsePopularSections = ($, source) => {
             var _a, _b;
@@ -1500,12 +1544,12 @@ class HarimangaMainParser {
             return PopularUpdate;
         };
         this.parseHomeSections = ($, source) => {
-            var _a;
+            var _a, _b;
             const latestUpdate = [];
             for (const manga of $('div.page-item-detail').toArray()) {
                 const id = this.idCleaner((_a = $('a', manga).attr('href')) !== null && _a !== void 0 ? _a : '', source);
                 const title = $('a', $('h3.h5', manga)).last().text();
-                const image = this.getImageSrc($('img', manga));
+                const image = (_b = this.getImageSrc($('img', manga))) === null || _b === void 0 ? void 0 : _b.replace('-175x238', '');
                 const subtitle = $('span.chapter', $('div.chapter-item', manga).first()).text().trim();
                 if (!id || !title)
                     continue;
@@ -1519,12 +1563,12 @@ class HarimangaMainParser {
             return latestUpdate;
         };
         this.parseTrendingSections = ($, source) => {
-            var _a;
+            var _a, _b;
             const PopularTrending = [];
             for (const manga of $('div.page-item-detail').toArray()) {
                 const id = this.idCleaner((_a = $('a', manga).attr('href')) !== null && _a !== void 0 ? _a : '', source);
                 const title = $('a', $('h3.h5', manga)).last().text();
-                const image = this.getImageSrc($('img', manga));
+                const image = (_b = this.getImageSrc($('img', manga))) === null || _b === void 0 ? void 0 : _b.replace('-110x150', '');
                 const subtitle = $('span.chapter', $('div.chapter-item', manga).first()).text().trim();
                 if (!id || !title)
                     continue;
@@ -1538,12 +1582,12 @@ class HarimangaMainParser {
             return PopularTrending;
         };
         this.parseNewTitles = ($, source) => {
-            var _a;
+            var _a, _b;
             const NewTTl = [];
             for (const manga of $('div.page-item-detail').toArray()) {
                 const id = this.idCleaner((_a = $('a', manga).attr('href')) !== null && _a !== void 0 ? _a : '', source);
                 const title = $('a', $('h3.h5', manga)).last().text();
-                const image = this.getImageSrc($('img', manga));
+                const image = (_b = this.getImageSrc($('img', manga))) === null || _b === void 0 ? void 0 : _b.replace('-110x150', '');
                 const subtitle = $('span.chapter', $('div.chapter-item', manga).first()).text().trim();
                 if (!id || !title)
                     continue;
@@ -1594,13 +1638,13 @@ class HarimangaMainParser {
             return time;
         };
         this.parseViewMore = ($, source) => {
-            var _a;
+            var _a, _b;
             const mangas = [];
             const collectedIds = [];
             for (const manga of $('div.page-item-detail').toArray()) {
                 const id = this.idCleaner((_a = $('a', manga).attr('href')) !== null && _a !== void 0 ? _a : '', source);
                 const title = $('a', $('h3.h5', manga)).last().text();
-                const image = this.getImageSrc($('img', manga));
+                const image = (_b = this.getImageSrc($('img', manga))) === null || _b === void 0 ? void 0 : _b.replace('-110x150', '');
                 const subtitle = $('span.chapter', $('div.chapter-item', manga).first()).text().trim();
                 if (collectedIds.includes(id) || !id || !title)
                     continue;
@@ -1617,12 +1661,12 @@ class HarimangaMainParser {
         this.isLastPage = ($, id) => {
             let isLast = true;
             if (id == 'view_more') {
-                const hasNext = Boolean($('div.nav-previous > a')[0]);
+                const hasNext = Boolean($('nav.navigation-ajax > a')[0]);
                 if (hasNext)
                     isLast = false;
             }
             if (id == 'search_request') {
-                const hasNext = Boolean($('div.nav-previous > a')[0]);
+                const hasNext = Boolean($('nav.navigation-ajax > a')[0]);
                 if (hasNext)
                     isLast = false;
             }
@@ -1851,51 +1895,7 @@ class HarimangaMainParser {
         return str;
     }
 }
-exports.HarimangaMainParser = HarimangaMainParser;
+exports.ManhwaclanMainParser = ManhwaclanMainParser;
 
-},{"entities":8,"paperback-extensions-common":14}],60:[function(require,module,exports){
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.URLBuilder = void 0;
-/* eslint-disable @typescript-eslint/no-explicit-any */
-class URLBuilder {
-    constructor(baseUrl) {
-        this.parameters = {};
-        this.pathComponents = [];
-        this.baseUrl = baseUrl.replace(/(^\/)?(?=.*)(\/$)?/gim, '');
-    }
-    addPathComponent(component) {
-        this.pathComponents.push(component.replace(/(^\/)?(?=.*)(\/$)?/gim, ''));
-        return this;
-    }
-    addQueryParameter(key, value) {
-        this.parameters[key] = value;
-        return this;
-    }
-    buildUrl({ addTrailingSlash, includeUndefinedParameters } = { addTrailingSlash: false, includeUndefinedParameters: false }) {
-        let finalUrl = this.baseUrl + '/';
-        finalUrl += this.pathComponents.join('/');
-        finalUrl += addTrailingSlash ? '/' : '';
-        finalUrl += Object.values(this.parameters).length > 0 ? '?' : '';
-        finalUrl += Object.entries(this.parameters).map(entry => {
-            if (entry[1] == null && !includeUndefinedParameters) {
-                return undefined;
-            }
-            if (Array.isArray(entry[1])) {
-                return entry[1].map(value => value || includeUndefinedParameters ? `${entry[0]}[]=${value}` : undefined)
-                    .filter(x => x !== undefined)
-                    .join('&');
-            }
-            if (typeof entry[1] === 'object') {
-                return Object.keys(entry[1]).map(key => `${entry[0]}[${key}]=${entry[1][key]}`)
-                    .join('&');
-            }
-            return `${entry[0]}=${entry[1]}`;
-        }).filter(x => x !== undefined).join('&');
-        return finalUrl;
-    }
-}
-exports.URLBuilder = URLBuilder;
-
-},{}]},{},[57])(57)
+},{"entities":8,"paperback-extensions-common":14}]},{},[58])(58)
 });
