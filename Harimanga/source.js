@@ -1019,7 +1019,7 @@ const paperback_extensions_common_1 = require("paperback-extensions-common");
 const HarimangaMainParser_1 = require("./HarimangaMainParser");
 const MadaraHelper_1 = require("../MadaraHelper");
 // Set the version for the base, changing this version will change the versions of all sources
-const BASE_VERSION = '1.0.0';
+const BASE_VERSION = '1.0.1';
 const getExportVersion = (EXTENSION_VERSION) => {
     return BASE_VERSION.split('.').map((x, index) => Number(x) + Number(EXTENSION_VERSION.split('.')[index])).join('.');
 };
@@ -1316,7 +1316,7 @@ class HarimangaMain extends paperback_extensions_common_1.Source {
                 },
                 {
                     request: createRequestObject({
-                        url: `${this.baseUrl}/home-newmanhwa`,
+                        url: `${this.baseUrl}/${this.sourceTraversalPathName}/?m_orderby=latest`,
                         method: 'GET'
                     }),
                     section: createHomeSection({
